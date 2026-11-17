@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="星耀峡谷">
 <title>星耀峡谷 · 网页 MOBA</title>
 <style>
 :root{
@@ -67,6 +71,18 @@ button{font-family:inherit}
 #btnStart.ready{opacity:1;pointer-events:auto}
 #btnStart.ready:hover{filter:brightness(1.1)}
 #select .hint{font-size:12px;color:var(--ink-dim);letter-spacing:.15em}
+
+/* 全屏按钮 & 轻提示 */
+#btnFsSelect{position:absolute;top:calc(14px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right));
+  z-index:5;font-family:inherit;font-size:13px;letter-spacing:.12em;color:var(--gold-hi);cursor:pointer;
+  background:rgba(9,14,24,.55);border:1px solid var(--gold-dim);border-radius:999px;padding:8px 18px}
+#btnFsSelect:hover{border-color:var(--gold)}
+#btnFsSelect:active{transform:scale(.95)}
+#toast{position:fixed;left:50%;bottom:14%;transform:translateX(-50%) translateY(12px);max-width:82vw;
+  background:var(--panel-solid);border:1px solid var(--gold-dim);border-radius:8px;padding:12px 18px;
+  font-size:13px;line-height:1.7;color:var(--ink);opacity:0;pointer-events:none;transition:.3s;z-index:220;
+  text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ---------- HUD 通用 ---------- */
 #hud{position:absolute;inset:0;z-index:20;pointer-events:none;font-size:13px}
@@ -213,6 +229,7 @@ button{font-family:inherit}
       <span class="kills kb" id="scoreB">0</span>
       <span class="clock" id="clock">00:00</span>
       <span class="kills kr" id="scoreR">0</span>
+      <span class="mute" id="btnFs" title="全屏">⛶</span>
       <span class="mute" id="btnMute" title="音效开关">♪</span>
     </div>
     <div id="mystats">
@@ -247,6 +264,7 @@ button{font-family:inherit}
   <div id="joyHint">左侧区域拖动移动</div>
 
   <div id="select">
+    <button id="btnFsSelect">⛶ 全屏游玩</button>
     <div class="title-wrap">
       <h1>星耀峡谷</h1>
       <div class="sub">网页 MOBA · 致敬 <b>英雄联盟手游</b> 的同人 Demo</div>
@@ -255,7 +273,7 @@ button{font-family:inherit}
     <div id="cards"></div>
     <div class="foot">
       <button id="btnStart">开 始 对 局</button>
-      <div class="hint">左侧摇杆移动 · 右侧按钮释放技能 · 击破敌方水晶获胜</div>
+      <div class="hint">建议点右上「全屏游玩」· 左侧摇杆移动 · 右侧按钮释放技能 · 击破敌方水晶获胜</div>
     </div>
   </div>
 
@@ -267,6 +285,7 @@ button{font-family:inherit}
   </div>
 
   <div id="rotate"><div class="ph"></div><p>请横屏游玩 · 建议手机或平板浏览器打开</p></div>
+  <div id="toast"></div>
   <div id="errbar"></div>
 </div>
 <script>
@@ -1599,6 +1618,46 @@ $('btnMute').addEventListener('pointerdown',e=>{
   e.preventDefault();
   $('btnMute').textContent=Snd.toggle()?'♪':'∅';
 });
+
+/* ---------- 全屏 ---------- */
+const FsUi={
+  active(){return !!(document.fullscreenElement||document.webkitFullscreenElement);},
+  supported(){const e=document.documentElement||{};return !!(e.requestFullscreen||e.webkitRequestFullscreen);},
+  enter(){
+    const e=document.documentElement;
+    try{
+      if(e.requestFullscreen){const p=e.requestFullscreen({navigationUI:'hide'});if(p&&p.catch)p.catch(()=>{});}
+      else if(e.webkitRequestFullscreen)e.webkitRequestFullscreen();
+      /* 全屏后锁定横屏(安卓 Chrome 支持,其余静默忽略) */
+      if(typeof screen!=='undefined'&&screen.orientation&&screen.orientation.lock){
+        const l=screen.orientation.lock('landscape');if(l&&l.catch)l.catch(()=>{});
+      }
+    }catch(err){}
+  },
+  exit(){try{
+    if(document.exitFullscreen)document.exitFullscreen();
+    else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
+  }catch(e){}}
+};
+let toastTimer=null;
+function toast(msg,long){
+  const t=$('toast');if(!t)return;
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),long?6500:3200);
+}
+function toggleFullscreen(){
+  Snd.unlock();
+  if(!FsUi.supported()){
+    toast('此浏览器不支持网页全屏(iPhone Safari 限制)。请用 Safari「分享 → 添加到主屏幕」,之后从主屏幕图标打开,即无浏览器边框',true);
+    return;
+  }
+  FsUi.active()?FsUi.exit():FsUi.enter();
+}
+$('btnFsSelect').addEventListener('pointerdown',e=>{e.preventDefault();toggleFullscreen();});
+$('btnFs').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();toggleFullscreen();});
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>
+  document.addEventListener(ev,()=>{if(typeof resize==='function')resize();}));
 
 /* ---------- 商店 ---------- */
 let shopOpen=false,invLen=-1;
