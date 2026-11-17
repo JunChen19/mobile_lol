@@ -17,19 +17,24 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          code=$(curl -s -o /tmp/resp.json -w "%{http_code}" -X POST \
+          echo "== POST /pages =="
+          code=$(curl -sS -o /tmp/resp.json -w "%{http_code}" -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/json" \
             "https://api.github.com/repos/JunChen19/mobile_lol/pages" \
-            -d '{"source":{"branch":"main","path":"/"}}')
-          echo "enable HTTP $code"; cat /tmp/resp.json; echo
-          if [ "$code" != "201" ] && [ "$code" != "409" ]; then
-            gcode=$(curl -s -o /tmp/get.json -w "%{http_code}" \
+            --data '{"source":{"branch":"main","path":"/"}}')
+          echo "HTTP $code"; cat /tmp/resp.json; echo
+          if [ "$code" = "201" ] || [ "$code" = "409" ]; then
+            echo "Pages enabled (or already enabled)"
+          else
+            echo "== GET /pages =="
+            gcode=$(curl -sS -o /tmp/get.json -w "%{http_code}" \
               -H "Authorization: Bearer $GH_TOKEN" \
               -H "Accept: application/vnd.github+json" \
               "https://api.github.com/repos/JunChen19/mobile_lol/pages")
-            echo "check HTTP $gcode"; cat /tmp/get.json; echo
-            [ "$gcode" = "200" ] || { echo "无法开启 Pages"; exit 1; }
+            echo "HTTP $gcode"; cat /tmp/get.json; echo
+            [ "$gcode" = "200" ] || { echo "无法开启 Pages,详见上方响应"; exit 1; }
           fi
       - name: Request pages build
         env:
