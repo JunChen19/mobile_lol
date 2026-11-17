@@ -47,7 +47,7 @@ canvas{display:block}
   background:linear-gradient(90deg,transparent,var(--gold-dim) 25%,var(--gold) 50%,var(--gold-dim) 75%,transparent)}
 #cards{flex:1;display:flex;gap:clamp(10px,2.2vw,26px);align-items:center;justify-content:center;
   padding:12px 16px;width:100%;max-width:1060px}
-.card{position:relative;width:clamp(150px,19vw,208px);border-radius:8px;cursor:pointer;
+.card{position:relative;width:min(208px,19vw,30vh);border-radius:8px;cursor:pointer;
   background:linear-gradient(180deg,#141c2c 0%,#0e1420 100%);
   border:1px solid #26314a;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
   padding:10px 10px 12px;text-align:center}
@@ -71,6 +71,36 @@ button{font-family:inherit}
 #btnStart.ready{opacity:1;pointer-events:auto}
 #btnStart.ready:hover{filter:brightness(1.1)}
 #select .hint{font-size:12px;color:var(--ink-dim);letter-spacing:.15em}
+
+/* ---------- 短屏(横屏手机)自适应压缩 ---------- */
+@media (max-height:540px){
+  #select .title-wrap{margin-top:1.2vh}
+  #select h1{font-size:clamp(22px,7.5vh,36px)}
+  #select .sub{margin-top:5px;font-size:11px;letter-spacing:.3em}
+  .title-rule{margin-top:8px}
+  #cards{gap:10px;padding:6px 10px}
+  .card{padding:7px 7px 9px}
+  .card .cname{margin-top:6px;font-size:14px}
+  .card .crole{margin-top:2px;font-size:11px}
+  .card .ctags{margin-top:6px;font-size:10px;line-height:1.5}
+  #select .foot{margin-bottom:2vh;gap:8px}
+  #btnStart{font-size:16px;padding:9px 44px}
+  #select .hint{font-size:10px}
+}
+@media (max-height:410px){
+  #select .sub{display:none}
+  #select .hint{display:none}
+  .card .ctags{display:none}
+  .card .crole{margin-top:1px}
+  #cards{padding:2px}
+  #btnStart{font-size:15px;padding:8px 36px}
+}
+/* ---------- 窄屏 HUD 微调 ---------- */
+@media (max-width:760px){
+  .islot{width:28px;height:28px;font-size:10px}
+  #invbar{right:calc(246px + env(safe-area-inset-right));gap:3px}
+  #joyHint{display:none}
+}
 
 /* 全屏按钮 & 轻提示 */
 #btnFsSelect{position:absolute;top:calc(14px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right));
