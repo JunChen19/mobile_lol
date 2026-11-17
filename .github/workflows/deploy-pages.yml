@@ -12,35 +12,49 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      REPO: JunChen19/mobile_lol
     steps:
       - name: Enable Pages (serve from main / root)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "== POST /pages =="
-          code=$(curl -sS -o /tmp/resp.json -w "%{http_code}" -X POST \
+          echo "=== 方式1: curl POST /pages ==="
+          code=$(curl -sS -o /tmp/r1.json -w "%{http_code}" -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
-            "https://api.github.com/repos/JunChen19/mobile_lol/pages" \
-            --data '{"source":{"branch":"main","path":"/"}}')
-          echo "HTTP $code"; cat /tmp/resp.json; echo
-          if [ "$code" = "201" ] || [ "$code" = "409" ]; then
-            echo "Pages enabled (or already enabled)"
+            "https://api.github.com/repos/$REPO/pages" \
+            --data '{"source":{"branch":"main","path":"/"}}') || code=000
+          echo "HTTP $code"; cat /tmp/r1.json 2>/dev/null; echo
+
+          if [ "$code" != "201" ] && [ "$code" != "409" ]; then
+            echo "=== 方式2: gh CLI POST /pages ==="
+            if gh api --method POST "repos/$REPO/pages" \
+                 -f 'source[branch]'=main -f 'source[path]'=/ > /tmp/r2.json 2>&1; then
+              echo "gh 成功"; cat /tmp/r2.json; echo
+            else
+              echo "gh 失败:"; cat /tmp/r2.json; echo
+            fi
+          fi
+
+          echo "=== 校验: GET /pages ==="
+          gcode=$(curl -sS -o /tmp/g.json -w "%{http_code}" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/pages") || gcode=000
+          echo "HTTP $gcode"; cat /tmp/g.json 2>/dev/null; echo
+          if [ "$gcode" = "200" ]; then
+            echo "Pages 已开启"
           else
-            echo "== GET /pages =="
-            gcode=$(curl -sS -o /tmp/get.json -w "%{http_code}" \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/JunChen19/mobile_lol/pages")
-            echo "HTTP $gcode"; cat /tmp/get.json; echo
-            [ "$gcode" = "200" ] || { echo "无法开启 Pages,详见上方响应"; exit 1; }
+            echo "!!! Pages 未能开启,需要用户在仓库 Settings → Pages 手动选择 main/(root) 一次 !!!"
+            exit 1
           fi
       - name: Request pages build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          curl -s -X POST \
+          curl -sS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/JunChen19/mobile_lol/pages/builds" || true
+            "https://api.github.com/repos/$REPO/pages/builds" || true
